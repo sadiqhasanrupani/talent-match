@@ -89,7 +89,7 @@ export default function AddJob() {
       }
 
       toast.success("Job posted successfully!");
-      router.push("/jobs");
+      router.push("/search/jobs");
     } catch (error) {
       console.error("Error submitting job:", error);
       toast.error("Failed to post job. Please try again.");

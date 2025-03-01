@@ -24,7 +24,7 @@ Talent Match is an AI-powered job matching platform that connects employers with
 
 - **Frontend**: Next.js, React, Tailwind CSS
 - **Database**: Pinecone (Vector Database)
-- **AI/ML**: Google Gemini AI, OpenAI Embeddings
+- **AI/ML**: Google Gemini AI, HuggingFace Embeddings
 - **Deployment**: Nginx, PM2
 - **Authentication**: Next-Auth
 
@@ -60,14 +60,14 @@ Before you begin, ensure you have:
    GOOGLE_API_KEY=your_google_api_key
    PINECONE_API_KEY=your_pinecone_api_key
    OPENAI_API_KEY=your_openai_api_key
-   
+
    # Pinecone Configuration
    DEBUG_PINECONE=true # Set to false in production
-   
+
    # Next Auth
    NEXTAUTH_SECRET=your_nextauth_secret
    NEXTAUTH_URL=http://localhost:3000
-   
+
    # Other Settings
    CANDIDATE_INDEX=candidate-index
    JOB_INDEX=job-index
@@ -216,4 +216,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📞 Support
 
 For support, please open an issue in the GitHub repository or contact the maintainers.
-

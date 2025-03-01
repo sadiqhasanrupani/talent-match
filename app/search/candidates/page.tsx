@@ -26,11 +26,7 @@ import {
 import { toast } from "sonner";
 import type { CandidateMatch, JobPosting } from "@/lib/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AIFeedback } from "@/lib/gemini";
-import { Separator } from "@/components/ui/separator";
-// Scoring is now handled by Gemini AI through the API
 
-// Generate detailed feedback based on normalized score
 function getFeedback(normalizedScore: number): {
   text: string;
   category: "exceptional" | "high" | "medium" | "low";

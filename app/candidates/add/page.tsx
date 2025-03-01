@@ -11,7 +11,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -203,7 +202,7 @@ export default function AddCandidate() {
       }
 
       toast.success("Profile submitted successfully!");
-      router.push("/candidates");
+      router.push("/search/candidates");
     } catch (error) {
       console.error("Error submitting candidate:", error);
       toast.error("Failed to submit profile. Please try again.");
