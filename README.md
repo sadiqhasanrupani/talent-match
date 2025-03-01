@@ -36,7 +36,7 @@ Before you begin, ensure you have:
 - npm or yarn
 - Pinecone account for vector database
 - Google AI API access (Gemini)
-- OpenAI API key for embeddings
+- HuggingFace API key for embeddings
 
 ## 🔧 Installation
 
@@ -59,7 +59,7 @@ Before you begin, ensure you have:
    # API Keys
    GOOGLE_API_KEY=your_google_api_key
    PINECONE_API_KEY=your_pinecone_api_key
-   OPENAI_API_KEY=your_openai_api_key
+   HUGGINGFACE_API_KEY=your_huggingface_api_key
 
    # Pinecone Configuration
    DEBUG_PINECONE=true # Set to false in production
@@ -198,7 +198,7 @@ The following environment variables are required for the application to function
 |----------|-------------|----------|
 | `GOOGLE_API_KEY` | API key for Google Gemini AI | Yes |
 | `PINECONE_API_KEY` | API key for Pinecone vector database | Yes |
-| `OPENAI_API_KEY` | API key for OpenAI embeddings | Yes |
+| `HUGGINGFACE_API_KEY` | API key for HuggingFace embeddings | Yes |
 | `NEXTAUTH_SECRET` | Secret for NextAuth authentication | Yes |
 | `NEXTAUTH_URL` | URL for NextAuth callbacks | Yes |
 | `CANDIDATE_INDEX` | Name of Pinecone index for candidates | Yes |
