@@ -1,0 +1,15 @@
+{
+  "apps": [{
+    "name": "talent-match",
+    "script": "npm",
+    "args": "start",
+    "cwd": "/home/sadiqhasan/d-drive/internships/webmobi/talent-match",
+    "env": {
+      "NODE_ENV": "production",
+      "PORT": "3000"
+    },
+    "watch": false,
+    "instances": 1,
+    "exec_mode": "fork"
+  }]
+}

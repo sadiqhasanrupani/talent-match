@@ -96,7 +96,7 @@ export default function SearchJobsPage() {
   // Filter jobs based on active tab using AI-generated normalized score
   const filteredJobs = jobs.filter((job) => {
     // Use the normalizedScore property directly from the API
-    const normalizedScore = job.normalizedScore;
+    const normalizedScore = job.normalizedScore ?? 0;
     if (activeTab === "all") return true;
     if (activeTab === "high") return normalizedScore >= 70;
     if (activeTab === "medium")
@@ -239,17 +239,17 @@ export default function SearchJobsPage() {
                 className="border border-slate-200 overflow-hidden hover:shadow-md transition-all duration-300 group"
               >
                 <CardHeader
-                  className={`pb-3 ${getScoreBackground(normalizedScore)}`}
+                  className={`pb-3 ${getScoreBackground(normalizedScore ?? 0)}`}
                 >
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-lg line-clamp-1">
                       {job.title}
                     </CardTitle>
                     <Badge
-                      variant={getBadgeVariant(normalizedScore)}
+                      variant={getBadgeVariant(normalizedScore ?? 0)}
                       className="ml-2"
                     >
-                      {normalizedScore}%
+                      {normalizedScore ?? 0}%
                     </Badge>
                   </div>
                   <div className="flex items-center text-sm text-muted-foreground gap-1">
@@ -300,15 +300,15 @@ export default function SearchJobsPage() {
                     </h4>
                     <div className="bg-slate-100 h-4 rounded-full w-full overflow-hidden">
                       <div
-                        className={`h-4 rounded-full ${getProgressColor(normalizedScore)} transition-all duration-500 ease-in-out`}
-                        style={{ width: `${normalizedScore}%` }}
+                        className={`h-4 rounded-full ${getProgressColor(normalizedScore ?? 0)} transition-all duration-500 ease-in-out`}
+                        style={{ width: `${normalizedScore ?? 0}%` }}
                       />
                     </div>
                     <div className="flex justify-between items-center mt-1">
                       <p className="text-xs font-medium">
-                        {normalizedScore >= 70
+                        {(normalizedScore ?? 0) >= 70
                           ? "Strong Match"
-                          : normalizedScore >= 40
+                          : (normalizedScore ?? 0) >= 40
                             ? "Potential Match"
                             : "Low Match"}
                       </p>
@@ -349,7 +349,7 @@ export default function SearchJobsPage() {
                         AI Feedback
                       </h4>
                       <div
-                        className={`p-2 rounded-md ${getScoreBackground(normalizedScore)} text-sm`}
+                        className={`p-2 rounded-md ${getScoreBackground(normalizedScore ?? 0)} text-sm`}
                       >
                         <p className="text-sm text-muted-foreground line-clamp-3">
                           {job.ai_feedback.text}

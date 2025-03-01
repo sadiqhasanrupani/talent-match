@@ -482,7 +482,7 @@ export default function SearchCandidatesPage() {
                               ? "Potential Match"
                               : "Low Match"}
                       </p>
-                      <p className="text-xs text-blue-600 flex items-center gap-1 hidden">
+                      <p className="text-xs text-blue-600 items-center gap-1 hidden">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="12"
