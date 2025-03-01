@@ -1,334 +1,323 @@
-import {
-  GoogleGenerativeAI,
-  HarmCategory,
-  HarmBlockThreshold,
-} from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Type definitions for resume and job data
-export interface ResumeData {
+const API_KEY = process.env.GOOGLE_API_KEY ?? "";
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+// Define types for the feedback and questions
+export interface AIFeedback {
   text: string;
-  candidateName?: string;
-  fileInfo?: {
-    filename: string;
-    size: number;
-  };
+  category: "exceptional" | "high" | "medium" | "low";
+  details: string;
 }
 
-export interface JobRequirements {
-  title: string;
-  description: string;
-  requiredSkills: string[];
-  preferredSkills?: string[];
-  experienceLevel?: string;
+export interface InterviewQuestion {
+  question: string;
+  rationale: string;
 }
 
-export interface CandidateSummary {
-  name: string;
-  skills: string[];
-  experience: string[];
-  education: string[];
-  summary: string;
-}
+/**
+ * Generate AI feedback for a candidate based on their skills and job requirements
+ */
+export async function generateAIFeedback(
+  candidateSkills: string,
+  jobRequirements: string,
+  matchScore: number,
+): Promise<AIFeedback> {
+  try {
+    // Get the generative model
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-export interface CandidateEvaluation {
-  score: number; // 0-100
-  skillsMatch: {
-    matched: string[];
-    missing: string[];
-  };
-  strengths: string[];
-  weaknesses: string[];
-  overallAssessment: string;
-}
+    // Create the prompt
+    const prompt = `
+      You are an AI recruiting assistant helping to evaluate candidate matches for job positions.
 
-export interface CandidateFeedback {
-  recommendedNextSteps: string[];
-  suggestedImprovement: string;
-  skillGaps: string[];
-  trainingRecommendations?: string[];
-}
+      Candidate skills and experience: "${candidateSkills}"
 
-export class GeminiService {
-  private genAI: GoogleGenerativeAI;
-  private model: string;
-  private apiKey: string;
+      Job requirements: "${jobRequirements}"
 
-  constructor(
-    apiKey: string = process.env.GOOGLE_AI_API_KEY!,
-    modelName: string = "gemini-pro",
-  ) {
-    this.apiKey = apiKey;
-    this.genAI = new GoogleGenerativeAI(this.apiKey);
-    this.model = modelName;
+      Match score (0-100): ${matchScore}
+
+      Based on this information, provide a detailed assessment of how well the candidate matches the job requirements.
+      Format your response as a JSON object with the following structure:
+      {
+        "text": "A short, one-sentence summary of the match quality",
+        "category": "One of: exceptional, high, medium, or low based on the match score and qualitative assessment",
+        "details": "A paragraph with 2-3 sentences explaining the match in more detail, including strengths and potential gaps"
+      }
+
+      Only return the JSON object, nothing else.
+    `;
+
+    // Generate content
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
+
+    // Parse the JSON response
+    try {
+      // Extract JSON if it's wrapped in code blocks or other text
+      let jsonString = text.trim();
+      
+      // Handle ```json code blocks
+      if (jsonString.startsWith("```json") && jsonString.endsWith("```")) {
+        jsonString = jsonString.substring(8, jsonString.length - 3).trim();
+      }
+      // Handle ``` code blocks
+      else if (jsonString.startsWith("```") && jsonString.endsWith("```")) {
+        jsonString = jsonString.substring(3, jsonString.length - 3).trim();
+      }
+      // Handle cases where there's text before or after the JSON
+      else {
+        const jsonMatch = jsonString.match(/{[\s\S]*}/);
+        if (jsonMatch) {
+          jsonString = jsonMatch[0];
+        }
+      }
+      
+      const feedback = JSON.parse(jsonString) as AIFeedback;
+
+      return feedback;
+    } catch (parseError) {
+      console.error("Error parsing Gemini response:", parseError);
+      // Fallback response if parsing fails
+      return {
+        text: `Match score: ${matchScore}%`,
+        category:
+          matchScore >= 90
+            ? "exceptional"
+            : matchScore >= 70
+              ? "high"
+              : matchScore >= 40
+                ? "medium"
+                : "low",
+        details:
+          "The candidate's skills and experience have been analyzed against the job requirements.",
+      };
+    }
+  } catch (error) {
+    console.error("Error generating AI feedback:", error);
+    // Fallback response if API call fails
+    return {
+      text: `Match score: ${matchScore}%`,
+      category:
+        matchScore >= 90
+          ? "exceptional"
+          : matchScore >= 70
+            ? "high"
+            : matchScore >= 40
+              ? "medium"
+              : "low",
+      details: "Unable to generate detailed AI feedback at this time.",
+    };
   }
+}
 
-  private async getModel() {
-    return this.genAI.getGenerativeModel({
-      model: this.model,
-      safetySettings: [
+/**
+ * Generate interview questions based on candidate skills and job requirements
+ */
+export async function generateInterviewQuestions(
+  candidateSkills: string,
+  jobRequirements: string,
+  matchScore: number,
+): Promise<InterviewQuestion[]> {
+  try {
+    // Get the generative model
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Create the prompt
+    const prompt = `
+      You are an AI recruiting assistant helping to generate interview questions for job candidates.
+
+      Candidate skills and experience: "${candidateSkills}"
+
+      Job requirements: "${jobRequirements}"
+
+      Match score (0-100): ${matchScore}
+
+      Based on this information, generate 3 tailored interview questions that will help assess:
+      1. The candidate's technical skills relevant to the job
+      2. Their experience with specific technologies mentioned in their profile
+      3. Any potential gaps between their skills and the job requirements
+
+      For each question, also provide a rationale explaining why this question is important to ask.
+
+      Format your response as a JSON array of objects, each containing a question and its rationale.
+      Example: [
         {
-          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+          "question": "Question 1",
+          "rationale": "Rationale for asking question 1"
         },
         {
-          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-        },
-      ],
-    });
-  }
+          "question": "Question 2",
+          "rationale": "Rationale for asking question 2"
+        }
+      ]
 
-  /**
-   * Summarizes a resume to generate a structured candidate profile
-   * @param resumeData The resume text and optional metadata
-   * @returns A structured summary of the candidate's profile
-   */
-  async summarizeResume(resumeData: ResumeData): Promise<CandidateSummary> {
-    const model = await this.getModel();
-
-    const prompt = `
-    Analyze the following resume and extract key information into a structured format.
-
-    Resume:
-    ${resumeData.text}
-
-    Please provide a structured summary with the following information:
-    1. Name of the candidate
-    2. Skills (as a list)
-    3. Experience (as a list of roles with companies and timeframes)
-    4. Education (as a list)
-    5. A brief professional summary (3-4 sentences)
-
-    Format the response as JSON.
+      Only return the JSON array, nothing else.
     `;
 
+    // Generate content
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
+
+    // Parse the JSON response
     try {
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      // Extract JSON from text response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("Failed to parse JSON from API response");
+      // Extract JSON if it's wrapped in code blocks or other text
+      let jsonString = text.trim();
+      
+      // Handle ```json code blocks
+      if (jsonString.startsWith("```json") && jsonString.endsWith("```")) {
+        jsonString = jsonString.substring(8, jsonString.length - 3).trim();
       }
-
-      const jsonResponse = JSON.parse(jsonMatch[0]);
-      return {
-        name: jsonResponse.name || resumeData.candidateName || "Unknown",
-        skills: jsonResponse.skills || [],
-        experience: jsonResponse.experience || [],
-        education: jsonResponse.education || [],
-        summary: jsonResponse.summary || "",
-      };
-    } catch (error) {
-      console.error("Error parsing resume:", error);
-
-      if (error instanceof Error) {
-        throw new Error(`Error summarizing resume: ${error.message}`);
+      // Handle ``` code blocks
+      else if (jsonString.startsWith("```") && jsonString.endsWith("```")) {
+        jsonString = jsonString.substring(3, jsonString.length - 3).trim();
+      } 
+      // Handle cases where there's text before or after the JSON array
+      else {
+        const jsonMatch = jsonString.match(/\[([\s\S]*)\]/);
+        if (jsonMatch) {
+          jsonString = jsonMatch[0];
+        }
+      }
+      
+      const parsed = JSON.parse(jsonString);
+      
+      // Handle both old format (string[]) and new format (InterviewQuestion[])
+      let questions: InterviewQuestion[];
+      
+      if (Array.isArray(parsed)) {
+        if (typeof parsed[0] === 'string') {
+          // Convert old format to new format
+          questions = parsed.map((q: string) => ({
+            question: q,
+            rationale: "This question helps assess the candidate's fit for the position."
+          }));
+        } else {
+          // Already in correct format
+          questions = parsed as InterviewQuestion[];
+        }
       } else {
-        throw new Error(`Error summarizing resume: something went wrong`);
-      }
-    }
-  }
-
-  /**
-   * Evaluates a candidate against job requirements
-   * @param candidateSummary The structured candidate summary
-   * @param jobRequirements The job requirements to evaluate against
-   * @returns An evaluation of the candidate against the job requirements
-   */
-  async evaluateCandidate(
-    candidateSummary: CandidateSummary,
-    jobRequirements: JobRequirements,
-  ): Promise<CandidateEvaluation> {
-    const model = await this.getModel();
-
-    const prompt = `
-    You are an expert HR professional tasked with evaluating a candidate for a job opening.
-
-    Job Details:
-    Title: ${jobRequirements.title}
-    Description: ${jobRequirements.description}
-    Required Skills: ${jobRequirements.requiredSkills.join(", ")}
-    ${jobRequirements.preferredSkills ? `Preferred Skills: ${jobRequirements.preferredSkills.join(", ")}` : ""}
-    ${jobRequirements.experienceLevel ? `Experience Level: ${jobRequirements.experienceLevel}` : ""}
-
-    Candidate Details:
-    Name: ${candidateSummary.name}
-    Skills: ${candidateSummary.skills.join(", ")}
-    Experience: ${JSON.stringify(candidateSummary.experience)}
-    Education: ${JSON.stringify(candidateSummary.education)}
-    Summary: ${candidateSummary.summary}
-
-    Evaluate this candidate against the job requirements and provide:
-    1. A score from 0-100 indicating how well they match the job requirements
-    2. Skills match analysis (which required skills they have and which they lack)
-    3. The candidate's key strengths relative to this role
-    4. The candidate's key weaknesses or gaps relative to this role
-    5. An overall assessment paragraph
-
-    Format the response as JSON.
-    `;
-
-    try {
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      // Extract JSON from text response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("Failed to parse JSON from API response");
+        throw new Error("Unexpected response format");
       }
 
-      const jsonResponse = JSON.parse(jsonMatch[0]);
-      return {
-        score: jsonResponse.score || 0,
-        skillsMatch: {
-          matched: jsonResponse.skillsMatch?.matched || [],
-          missing: jsonResponse.skillsMatch?.missing || [],
-        },
-        strengths: jsonResponse.strengths || [],
-        weaknesses: jsonResponse.weaknesses || [],
-        overallAssessment: jsonResponse.overallAssessment || "",
-      };
-    } catch (error) {
-      console.error("Error evaluating candidate:", error);
-      throw new Error(
-        `Failed to evaluate candidate: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
+      return questions.slice(0, 3); // Ensure we only return 3 questions
+    } catch (parseError) {
+      console.error("Error parsing Gemini response:", parseError);
 
-  /**
-   * Generates feedback for a candidate based on their evaluation
-   * @param candidateSummary The structured candidate summary
-   * @param evaluation The evaluation results
-   * @param jobRequirements The job requirements
-   * @returns Personalized feedback for the candidate
-   */
-  async generateFeedback(
-    candidateSummary: CandidateSummary,
-    evaluation: CandidateEvaluation,
-    jobRequirements: JobRequirements,
-  ): Promise<CandidateFeedback> {
-    const model = await this.getModel();
+      // Fallback questions if parsing fails
+      const skillsList = candidateSkills
+        .split(/,|\.|and/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const randomSkills = skillsList
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 2);
 
-    const prompt = `
-    You are a career coach providing constructive feedback to a job candidate.
-
-    Candidate Summary:
-    ${JSON.stringify(candidateSummary, null, 2)}
-
-    Job Requirements:
-    ${JSON.stringify(jobRequirements, null, 2)}
-
-    Evaluation Results:
-    ${JSON.stringify(evaluation, null, 2)}
-
-    Based on the evaluation, provide:
-    1. 3-5 recommended next steps for this candidate
-    2. Constructive feedback on how they could improve their candidacy
-    3. Specific skill gaps they should address
-    4. Recommended training or certifications that would help them
-
-    Make the feedback actionable, specific, and encouraging. Format the response as JSON.
-    `;
-
-    try {
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      // Extract JSON from text response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("Failed to parse JSON from API response");
-      }
-
-      const jsonResponse = JSON.parse(jsonMatch[0]);
-      return {
-        recommendedNextSteps: jsonResponse.recommendedNextSteps || [],
-        suggestedImprovement: jsonResponse.suggestedImprovement || "",
-        skillGaps: jsonResponse.skillGaps || [],
-        trainingRecommendations: jsonResponse.trainingRecommendations || [],
-      };
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Failed to generate feedback: ${error.message}`);
+      if (matchScore >= 70) {
+        return [
+          {
+            question: `Can you describe a project where you used ${randomSkills[0] || "your technical skills"} to solve a complex problem?`,
+            rationale: "This helps assess the candidate's practical experience and problem-solving abilities with specific technologies."
+          },
+          {
+            question: `How do you stay updated with the latest developments in ${randomSkills[1] || "your field"}?`,
+            rationale: "This reveals the candidate's commitment to continuous learning and staying current in their field."
+          },
+          {
+            question: `What's your approach to learning new technologies quickly?`,
+            rationale: "This evaluates the candidate's adaptability and learning methodology, which is crucial in fast-evolving technical roles."
+          },
+        ];
       } else {
-        throw new Error(
-          "Failed to generate feedback: An unknown error occurred",
-        );
+        return [
+          {
+            question: `How would you rate your proficiency in ${randomSkills[0] || "the required technologies"} and why?`,
+            rationale: "This helps evaluate the candidate's self-awareness and honest assessment of their skills in relation to the job requirements."
+          },
+          {
+            question: `What steps would you take to improve your knowledge of ${randomSkills[1] || "the required skills"}?`,
+            rationale: "This assesses the candidate's commitment to addressing their skill gaps and their approach to professional development."
+          },
+          {
+            question: `Can you describe a situation where you had to learn a new technology quickly?`,
+            rationale: "This evaluates the candidate's adaptability and ability to efficiently acquire new skills when needed for a project."
+          },
+        ];
       }
     }
-  }
+  } catch (error) {
+    console.error("Error generating interview questions:", error);
 
-  /**
-   * Compares multiple candidates for a job and ranks them
-   * @param candidates Array of candidate evaluations
-   * @returns Ranked list of candidates with comparative analysis
-   */
-  async rankCandidates(
-    candidates: Array<{
-      name: string;
-      summary: CandidateSummary;
-      evaluation: CandidateEvaluation;
-    }>,
-    jobRequirements: JobRequirements,
-  ): Promise<
-    Array<{
-      name: string;
-      rank: number;
-      score: number;
-      rationale: string;
-    }>
-  > {
-    const model = await this.getModel();
-
-    const prompt = `
-    You are a hiring manager comparing multiple candidates for a job opening.
-
-    Job Requirements:
-    ${JSON.stringify(jobRequirements, null, 2)}
-
-    Candidates:
-    ${JSON.stringify(candidates, null, 2)}
-
-    Rank these candidates from best to worst fit for the role. For each candidate, provide:
-    1. Their rank (1 being the best)
-    2. Their score out of 100
-    3. A brief rationale for their ranking
-
-    Format the response as a JSON array.
-    `;
-
-    try {
-      const result = await model.generateContent(prompt);
-      const response = result.response;
-      const text = response.text();
-
-      // Extract JSON from text response
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        throw new Error("Failed to parse JSON from API response");
-      }
-
-      return JSON.parse(jsonMatch[0]);
-    } catch (error) {
-      console.error("Error ranking candidates:", error);
-      if (error instanceof Error) {
-        throw new Error(`Failed to rank candidates: ${error.message}`);
-      } else {
-        throw new Error("Failed to rank candidates: An unknown error occurred");
-      }
-    }
+    // Fallback questions if API call fails
+    return [
+      {
+        question: "Can you describe your experience with the technologies mentioned in your profile?",
+        rationale: "This helps verify the candidate's claimed experience and assess depth of knowledge in relevant technologies."
+      },
+      {
+        question: "How do you approach learning new technologies or skills?",
+        rationale: "This reveals the candidate's learning methodology and adaptability to new technical challenges."
+      },
+      {
+        question: "What do you consider your strongest technical skill and why?",
+        rationale: "This provides insight into the candidate's strengths and self-awareness about their technical capabilities."
+      },
+    ];
   }
 }
 
-// Export a singleton instance with default configuration
-export const geminiService = new GeminiService();
+/**
+ * Calculate a match score between a candidate's skills and job requirements using Gemini AI
+ */
+export async function calculateMatchScore(
+  candidateSkills: string,
+  jobRequirements: string,
+): Promise<number> {
+  try {
+    // Get the generative model
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-// Export default for direct imports
-export default GeminiService;
+    // Create the prompt
+    const prompt = `
+      You are an AI recruiting assistant calculating a match score between a candidate and a job position.
+
+      Candidate skills and experience: "${candidateSkills}"
+
+      Job requirements: "${jobRequirements}"
+
+      Based on this information, calculate a match score from 0 to 100 that represents how well the candidate's skills match the job requirements.
+
+      Consider the following factors:
+      1. Technical skills mentioned in both the candidate profile and job requirements
+      2. Experience level and depth of knowledge
+      3. Relevance of the candidate's background to the job
+      4. Both hard skills (specific technologies) and soft skills (if mentioned)
+
+      Return ONLY a single number between 0 and 100 representing the match percentage. 
+      Do not include any explanation or text, only the number.
+    `;
+
+    // Generate content
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text().trim();
+
+    // Parse the response to extract only the number
+    const scoreMatch = text.match(/\d+/);
+    if (scoreMatch) {
+      const score = parseInt(scoreMatch[0], 10);
+      // Ensure the score is within the valid range
+      return Math.min(Math.max(score, 0), 100);
+    }
+
+    // Default fallback score if we couldn't parse a number
+    return 50;
+  } catch (error) {
+    console.error("Error calculating AI match score:", error);
+    // Return a default score if the API call fails
+    return 50;
+  }
+}
+

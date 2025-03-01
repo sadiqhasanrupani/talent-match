@@ -1,283 +1,171 @@
 import { Pinecone } from "@pinecone-database/pinecone";
-import { generateEmbedding } from "./embeddings";
-import { parseResume } from "./pdf-parser";
 
-// Define types for the application
-type CandidateMetadata = {
-  id: string;
-  name: string;
-  email: string;
-  skills: string;
-  resumeText?: string;
-  linkedinUrl?: string;
+// Add debug logging function
+const debugLog = (message: string, data?: any) => {
+  if (process.env.DEBUG_PINECONE === 'true') {
+    console.log(`[PINECONE DEBUG] ${message}`, data || '');
+  }
 };
 
-type JobMetadata = {
-  id: string;
-  title: string;
-  description: string;
-  requirements?: string;
-  location?: string;
-  company?: string;
-};
+// Initialize Pinecone with new API and proper error handling
+let pc: Pinecone | null = null;
 
-// Initialize Pinecone client
-const initPinecone = (): Pinecone => {
+try {
   const apiKey = process.env.PINECONE_API_KEY;
-
+  
   if (!apiKey) {
-    throw new Error("PINECONE_API_KEY environment variable is not set");
+    throw new Error("PINECONE_API_KEY is not defined in environment variables");
   }
-
-  return new Pinecone({
-    apiKey,
+  
+  debugLog("Initializing Pinecone client");
+  
+  // Initialize with the new API for serverless indexes
+  pc = new Pinecone({
+    apiKey: apiKey.toString()
   });
-};
+  
+  debugLog("Pinecone client initialized successfully");
+} catch (error) {
+  console.error("Failed to initialize Pinecone client:", error);
+  // We'll handle the null pc in the functions below
+}
 
-// Get or create an index
-const getOrCreateIndex = async (indexName: string, dimension: number = 768) => {
-  const pinecone = initPinecone();
+// Index names
+export const CANDIDATE_INDEX_NAME = "candidate-index";
+export const JOB_INDEX_NAME = "job-description-index";
 
-  // List all indexes
-  const indexes = await pinecone.listIndexes();
-  // Convert indexes to an array if not already one
-  const indexesArray = Array.isArray(indexes)
-    ? indexes
-    : Object.values(indexes);
-
-  // Check if the index already exists
-  const indexExists = indexesArray.some((index) => index.name === indexName);
-
-  if (!indexExists) {
-    console.log(`Creating new index: ${indexName}`);
-    await pinecone.createIndex({
-      name: indexName,
-      dimension,
-      metric: "cosine",
-      spec: {
-        serverless: {
-          cloud: "aws",
-          region: "us-east-1",
-        },
-      },
-      waitUntilReady: true, // Ensures the index is ready for upsert operations
+// Function to create an index if it doesn't exist
+export async function createPineconeIndex(indexName: string, dimension = 384) {
+  if (!pc) {
+    console.error("Cannot create index: Pinecone client not initialized");
+    throw new Error("Pinecone client not initialized");
+  }
+  
+  try {
+    debugLog(`Checking if index '${indexName}' exists`);
+    
+    // List existing indexes with error handling
+    const existingIndexes = await pc.listIndexes().catch(error => {
+      console.error(`Failed to list Pinecone indexes: ${error}`);
+      throw new Error(`Failed to list Pinecone indexes: ${error.message}`);
     });
-  }
-
-  return pinecone.index(indexName);
-};
-
-// Store candidate embedding in Pinecone
-export const storeCandidateEmbedding = async (
-  candidateData: CandidateMetadata,
-  resumeText?: string,
-) => {
-  try {
-    // Get or create the candidates index
-    const index = await getOrCreateIndex("candidates");
-
-    // Use resume text if provided, otherwise use skills
-    const textToEmbed =
-      resumeText || candidateData.resumeText || candidateData.skills;
-
-    if (!textToEmbed) {
-      throw new Error("No text available to generate embedding");
-    }
-
-    // Generate embedding for the candidate data
-    const embedding = await generateEmbedding(textToEmbed);
-
-    // Upsert the embedding into Pinecone
-    await index.upsert([
-      {
-        id: candidateData.id,
-        values: embedding,
-        metadata: {
-          name: candidateData.name,
-          email: candidateData.email,
-          skills: candidateData.skills,
-          linkedinUrl: candidateData.linkedinUrl || "",
-        },
-      },
-    ]);
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error storing candidate embedding:", error);
-    return { success: false, error };
-  }
-};
-
-// Store job embedding in Pinecone
-export const storeJobEmbedding = async (jobData: JobMetadata) => {
-  try {
-    // Get or create the jobs index
-    const index = await getOrCreateIndex("jobs");
-
-    // Combine job title and description for richer embedding
-    const textToEmbed = `${jobData.title}. ${jobData.description}. ${jobData.requirements || ""}`;
-
-    // Generate embedding for the job data
-    const embedding = await generateEmbedding(textToEmbed);
-
-    // Upsert the embedding into Pinecone
-    await index.upsert([
-      {
-        id: jobData.id,
-        values: embedding,
-        metadata: {
-          title: jobData.title,
-          description: jobData.description,
-          requirements: jobData.requirements || "",
-          location: jobData.location || "",
-          company: jobData.company || "",
-        },
-      },
-    ]);
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error storing job embedding:", error);
-    return { success: false, error };
-  }
-};
-
-// Search for relevant candidates based on job description
-export const findCandidatesForJob = async (
-  jobDescription: string,
-  limit: number = 10,
-) => {
-  try {
-    // Get the candidates index
-    const index = await getOrCreateIndex("candidates");
-
-    // Generate embedding for the job description
-    const embedding = await generateEmbedding(jobDescription);
-
-    // Query Pinecone for similar vectors
-    const queryResponse = await index.query({
-      vector: embedding,
-      topK: limit,
-      includeMetadata: true,
-    });
-
-    // Format and return the results
-    return {
-      success: true,
-      candidates: queryResponse.matches.map((match) => ({
-        id: match.id,
-        score: match.score,
-        metadata: match.metadata as CandidateMetadata,
-      })),
-    };
-  } catch (error) {
-    console.error("Error finding candidates for job:", error);
-    return { success: false, error, candidates: [] };
-  }
-};
-
-// Process a resume file and store its embedding
-export const processResumeAndStoreEmbedding = async (
-  candidateId: string,
-  candidateData: CandidateMetadata,
-  resumeUrl?: string | null,
-) => {
-  try {
-    if (!resumeUrl) {
-      // If no resume, just store embedding based on skills
-      return await storeCandidateEmbedding(candidateData);
-    }
-
-    // Parse the resume to extract resume data (of type ResumeData)
-    const resumeData = await parseResume(resumeUrl);
-
-    // Ensure we have a rawText field from the parsed resume data
-    if (!resumeData || !resumeData.rawText) {
-      console.warn(
-        `No text extracted from resume for candidate ${candidateId}`,
-      );
-      return await storeCandidateEmbedding(candidateData);
-    }
-
-    // Store embedding with the extracted resume text (using rawText)
-    return await storeCandidateEmbedding(
-      { ...candidateData, resumeText: resumeData.rawText },
-      resumeData.rawText,
+    
+    const indexExists = existingIndexes.indexes?.some(
+      (index) => index.name === indexName,
     );
+    
+    debugLog(`Index '${indexName}' exists: ${indexExists}`);
+
+    if (!indexExists) {
+      debugLog(`Creating new index '${indexName}'`);
+      // Create index with new API
+      await pc.createIndex({
+        name: indexName,
+        dimension: dimension,
+        metric: "cosine",
+        spec: {
+          serverless: {
+            cloud: "aws",
+            region: "us-east-1",
+          },
+        },
+      }).catch(error => {
+        console.error(`Failed to create Pinecone index '${indexName}': ${error}`);
+        throw new Error(`Failed to create Pinecone index '${indexName}': ${error.message}`);
+      });
+      
+      console.log(`✅ Created Pinecone index: ${indexName}`);
+      
+      // Wait for index to be ready
+      console.log(`Waiting for index '${indexName}' to be ready...`);
+      await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 60 seconds
+    } else {
+      console.log(`✅ Using existing Pinecone index: ${indexName}`);
+    }
   } catch (error) {
-    console.error("Error processing resume and storing embedding:", error);
-    return { success: false, error };
+    console.error(`Error creating Pinecone index: ${error}`);
+    throw error; // Re-throw to allow caller to handle
+  }
+}
+
+// Get Pinecone indexes with error handling
+export const getCandidateIndex = () => {
+  if (!pc) {
+    console.error("Cannot get candidate index: Pinecone client not initialized");
+    throw new Error("Pinecone client not initialized");
+  }
+  
+  debugLog(`Getting candidate index: ${CANDIDATE_INDEX_NAME}`);
+  try {
+    return pc.index(CANDIDATE_INDEX_NAME);
+  } catch (error) {
+    console.error(`Error getting candidate index: ${error}`);
+    throw new Error(`Failed to connect to candidate index: ${error.message}`);
   }
 };
 
-// Find jobs matching a candidate's profile
-export const findJobsForCandidate = async (
-  candidateSkills: string,
-  limit: number = 10,
-) => {
+export const getJobIndex = () => {
+  if (!pc) {
+    console.error("Cannot get job index: Pinecone client not initialized");
+    throw new Error("Pinecone client not initialized");
+  }
+  
+  debugLog(`Getting job index: ${JOB_INDEX_NAME}`);
   try {
-    // Get the jobs index
-    const index = await getOrCreateIndex("jobs");
-
-    // Generate embedding for the candidate skills
-    const embedding = await generateEmbedding(candidateSkills);
-
-    // Query Pinecone for similar vectors
-    const queryResponse = await index.query({
-      vector: embedding,
-      topK: limit,
-      includeMetadata: true,
-    });
-
-    // Format and return the results
-    return {
-      success: true,
-      jobs: queryResponse.matches.map((match) => ({
-        id: match.id,
-        score: match.score,
-        metadata: match.metadata as JobMetadata,
-      })),
-    };
+    return pc.index(JOB_INDEX_NAME);
   } catch (error) {
-    console.error("Error finding jobs for candidate:", error);
-    return { success: false, error, jobs: [] };
+    console.error(`Error getting job index: ${error}`);
+    throw new Error(`Failed to connect to job index: ${error.message}`);
   }
 };
 
-// Delete a candidate from the vector database
-export const deleteCandidate = async (candidateId: string) => {
-  try {
-    const index = await getOrCreateIndex("candidates");
-    await index.deleteOne(candidateId);
-    return { success: true };
-  } catch (error) {
-    console.error("Error deleting candidate:", error);
-    return { success: false, error };
+// Initialize indexes with better error handling
+export async function initPinecone() {
+  debugLog("Initializing Pinecone indexes");
+  
+  if (!pc) {
+    const error = "Cannot initialize indexes: Pinecone client not initialized";
+    console.error(error);
+    throw new Error(error);
   }
-};
+  
+  try {
+    console.log("Creating candidate index...");
+    await createPineconeIndex(CANDIDATE_INDEX_NAME);
+    
+    console.log("Creating job index...");
+    await createPineconeIndex(JOB_INDEX_NAME);
+    
+    // Test connections to verify indexes are accessible
+    debugLog("Testing connection to indexes");
+    
+    try {
+      const candidateIndex = getCandidateIndex();
+      const stats = await candidateIndex.describeIndexStats();
+      debugLog("Candidate index connection successful", stats);
+    } catch (error) {
+      console.error(`Failed to connect to candidate index: ${error}`);
+    }
+    
+    try {
+      const jobIndex = getJobIndex();
+      const stats = await jobIndex.describeIndexStats();
+      debugLog("Job index connection successful", stats);
+    } catch (error) {
+      console.error(`Failed to connect to job index: ${error}`);
+    }
+    
+    console.log("✅ Pinecone indexes initialized");
+  } catch (error) {
+    console.error("Failed to initialize Pinecone indexes:", error);
+    throw error;
+  }
+}
 
-// Delete a job from the vector database
-export const deleteJob = async (jobId: string) => {
-  try {
-    const index = await getOrCreateIndex("jobs");
-    await index.deleteOne(jobId);
-    return { success: true };
-  } catch (error) {
-    console.error("Error deleting job:", error);
-    return { success: false, error };
+// Export Pinecone client for testing connection
+export const getPineconeClient = () => {
+  if (!pc) {
+    throw new Error("Pinecone client not initialized");
   }
-};
-
-// Get all candidates (for listing purposes)
-export const getAllCandidates = async () => {
-  try {
-    // const index = await getOrCreateIndex("candidates");
-    // This is a stub - Pinecone doesn't support getting all vectors without a query
-    // In a production app, you would typically keep a separate database for listing
-    // purposes and use Pinecone solely for vector search
-    return { success: true, candidates: [] };
-  } catch (error) {
-    console.error("Error getting all candidates:", error);
-    return { success: false, error, candidates: [] };
-  }
+  return pc;
 };

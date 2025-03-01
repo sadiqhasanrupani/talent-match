@@ -1,0 +1,105 @@
+nohup: ignoring input
+
+> nextjs@0.1.0 dev
+> next dev
+
+  ▲ Next.js 13.5.1
+  - Local:        http://localhost:3000
+  - Environments: .env
+
+ ✓ Ready in 1477ms
+ ✓ Compiled /api/init-pinecone/route in 321ms (236 modules)
+Creating candidate index...
+✅ Using existing Pinecone index: candidate-index
+Creating job index...
+ ✓ Compiled /search/candidates/page in 1258ms (881 modules)
+ ✓ Compiled in 499ms (337 modules)
+✅ Using existing Pinecone index: job-description-index
+✅ Pinecone indexes initialized
+ ✓ Compiled /api/search-candidates/route in 189ms (549 modules)
+ ✓ Compiled in 904ms (884 modules)
+ ✓ Compiled /not-found in 221ms (875 modules)
+ ✓ Compiled /page in 293ms (778 modules)
+ ✓ Compiled /jobs/add/page in 474ms (802 modules)
+ ✓ Compiled /api/init-pinecone/route in 163ms (627 modules)
+Creating candidate index...
+Creating candidate index...
+✅ Using existing Pinecone index: candidate-index
+Creating job index...
+✅ Using existing Pinecone index: candidate-index
+Creating job index...
+✅ Using existing Pinecone index: job-description-index
+✅ Pinecone indexes initialized
+✅ Using existing Pinecone index: job-description-index
+✅ Pinecone indexes initialized
+ ✓ Compiled /search/jobs/page in 380ms (1044 modules)
+ ✓ Compiled /api/match-jobs/[email]/route in 137ms (639 modules)
+ X ./app/search/candidates/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+     ,-[[36;1;4m/mnt/data/internships/webmobi/talent-match-phase-2/app/search/candidates/page.tsx[0m:244:1]
+ [2m244[0m |   });
+ [2m245[0m | 
+ [2m246[0m |   return (
+ [2m247[0m |     <div className="container mx-auto px-4 py-8 max-w-7xl">
+     : [31;1m     ^^^[0m
+ [2m248[0m |       <div className="flex items-center mb-6">
+ [2m249[0m |         <Link href="/" className="mr-4">
+ [2m250[0m |           <Button
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/search/candidates/page.tsx
+ X ./app/search/candidates/page.tsx
+Error: 
+  [31mx[0m Unexpected token `div`. Expected jsx identifier
+     ,-[[36;1;4m/mnt/data/internships/webmobi/talent-match-phase-2/app/search/candidates/page.tsx[0m:244:1]
+ [2m244[0m |   });
+ [2m245[0m | 
+ [2m246[0m |   return (
+ [2m247[0m |     <div className="container mx-auto px-4 py-8 max-w-7xl">
+     : [31;1m     ^^^[0m
+ [2m248[0m |       <div className="flex items-center mb-6">
+ [2m249[0m |         <Link href="/" className="mr-4">
+ [2m250[0m |           <Button
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/search/candidates/page.tsx
+ ○ compiling /_error ...
+ ✓ Compiled /not-found in 1201ms (964 modules)
+ X TypeError: __webpack_modules__[moduleId] is not a function
+    at __webpack_require__ (/mnt/data/internships/webmobi/talent-match-phase-2/.next/server/webpack-runtime.js:33:42)
+    at eval (./components/ui/dropdown-menu.tsx:24:119)
+    at (ssr)/./components/ui/dropdown-menu.tsx (/mnt/data/internships/webmobi/talent-match-phase-2/.next/server/app/page.js:206:1)
+    at __webpack_require__ (/mnt/data/internships/webmobi/talent-match-phase-2/.next/server/webpack-runtime.js:33:42)
+    at eval (./components/mode-toggle.tsx:12:86)
+    at (ssr)/./components/mode-toggle.tsx (/mnt/data/internships/webmobi/talent-match-phase-2/.next/server/app/page.js:151:1)
+    at __webpack_require__ (/mnt/data/internships/webmobi/talent-match-phase-2/.next/server/webpack-runtime.js:33:42)
+    at eval (./components/header.tsx:10:81)
+    at (ssr)/./components/header.tsx (/mnt/data/internships/webmobi/talent-match-phase-2/.next/server/app/page.js:140:1)
+    at __webpack_require__ (/mnt/data/internships/webmobi/talent-match-phase-2/.next/server/webpack-runtime.js:33:42)
+    at eval (./app/page.tsx:14:76)
+    at (ssr)/./app/page.tsx (/mnt/data/internships/webmobi/talent-match-phase-2/.next/server/app/page.js:129:1)
+    at __webpack_require__ (/mnt/data/internships/webmobi/talent-match-phase-2/.next/server/webpack-runtime.js:33:42)
+ ✓ Compiled /api/search-candidates/route in 295ms (664 modules)
+ ✓ Compiled in 1045ms (1203 modules)
+ ✓ Compiled /not-found in 118ms (1194 modules)
+ ✓ Compiled /candidates/add/page in 472ms (1221 modules)
+ ✓ Compiled /api/init-pinecone/route in 83ms (684 modules)
+Creating candidate index...
+Creating candidate index...
+✅ Using existing Pinecone index: candidate-index
+Creating job index...
+✅ Using existing Pinecone index: candidate-index
+Creating job index...
+✅ Using existing Pinecone index: job-description-index
+✅ Pinecone indexes initialized
+✅ Using existing Pinecone index: job-description-index
+✅ Pinecone indexes initialized

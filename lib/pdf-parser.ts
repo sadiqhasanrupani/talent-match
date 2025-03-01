@@ -1,5 +1,5 @@
 import fs from "fs";
-import PDFParser from 'pdf2json';
+import PDFParser from "pdf2json";
 // Define types for the extracted information
 export interface ResumeData {
   rawText: string;
@@ -149,12 +149,12 @@ export async function parseResume(input: Buffer | string): Promise<ResumeData> {
     // Parse the PDF
     let text;
     try {
-    text = await extractTextFromPdf(pdfBuffer);
+      text = await extractTextFromPdf(pdfBuffer);
     } catch (parseError) {
-    console.error("Error parsing PDF content:", parseError);
-    throw new Error(
+      console.error("Error parsing PDF content:", parseError);
+      throw new Error(
         `Failed to parse PDF content: ${parseError instanceof Error ? parseError.message : "Unknown error"}`,
-    );
+      );
     }
 
     // Extract information
@@ -335,47 +335,47 @@ function extractSection(text: string, keywords: string[]): string | null {
 }
 
 /**
-* Helper function to extract text from a PDF buffer using pdf2json
-* @param pdfBuffer - Buffer containing PDF data
-* @returns The extracted text as a string
-*/
+ * Helper function to extract text from a PDF buffer using pdf2json
+ * @param pdfBuffer - Buffer containing PDF data
+ * @returns The extracted text as a string
+ */
 async function extractTextFromPdf(pdfBuffer: Buffer): Promise<string> {
-return new Promise((resolve, reject) => {
-    const pdfParser = new PDFParser(null, 1);
-    
+  return new Promise((resolve, reject) => {
+    const pdfParser = new PDFParser(null, true);
+
     // Register event handlers
     pdfParser.on("pdfParser_dataError", (errData) => {
-    reject(new Error(errData.parserError));
+      reject(new Error(errData.parserError as any));
     });
-    
+
     pdfParser.on("pdfParser_dataReady", (pdfData) => {
-    try {
+      try {
         // Extract text from the parsed PDF data
         let text = "";
-        
+
         // PDF2JSON parses the PDF into pages, with each page containing text elements
         for (const page of pdfData.Pages) {
-        for (const textItem of page.Texts) {
+          for (const textItem of page.Texts) {
             // Decode the text content (pdf2json encodes spaces as '%20' and other special characters)
             for (const textFragment of textItem.R) {
-            text += decodeURIComponent(textFragment.T) + " ";
+              text += decodeURIComponent(textFragment.T) + " ";
             }
             text += "\n";
+          }
+          text += "\n\n"; // Add extra newlines between pages
         }
-        text += "\n\n"; // Add extra newlines between pages
-        }
-        
+
         resolve(text.trim());
-    } catch (error) {
+      } catch (error) {
         reject(error);
-    }
+      }
     });
-    
+
     // Parse the PDF buffer
     try {
-    pdfParser.parseBuffer(pdfBuffer);
+      pdfParser.parseBuffer(pdfBuffer);
     } catch (error) {
-    reject(error);
+      reject(error);
     }
-});
+  });
 }
