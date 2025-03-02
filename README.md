@@ -1,8 +1,8 @@
 # Talent Match
 
-<p align="center">
+<!-- <p align="center">
   <img src="public/logo.png" alt="Talent Match Logo" width="200"/>
-</p>
+</p> -->
 
 Talent Match is an AI-powered job matching platform that connects employers with the most suitable candidates using advanced AI algorithms and vector embeddings. The application leverages Google's Gemini AI to provide intelligent matching, personalized feedback, and tailored interview questions.
 
