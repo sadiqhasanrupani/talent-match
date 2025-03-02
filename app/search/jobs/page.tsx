@@ -27,7 +27,6 @@ import type { JobMatch } from "@/lib/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Gemini AI is now handling score normalization in the API
-// The API returns a normalizedScore property (0-100)
 
 // Get badge color based on normalized score
 function getBadgeVariant(

@@ -199,7 +199,6 @@ export default function SearchCandidatesPage() {
       }
 
       // Set job details from API response
-      // Set job details from API response
       if (data.job) {
         setJobDetails({
           id: data.job.job_id || "unknown", // Handle potential missing job_id
@@ -397,7 +396,6 @@ export default function SearchCandidatesPage() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCandidates.map((candidate, index) => {
             // Use AI-generated feedback from the API instead of local generation
-            // Use AI-generated feedback from the API
             const feedback = candidate.ai_feedback || {
               text: "Candidate evaluation completed by AI.",
               category:
