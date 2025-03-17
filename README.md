@@ -1,3 +1,88 @@
+# Talent Match 🎯
+
+An AI-powered job matching platform that goes beyond traditional keyword matching to create meaningful connections between candidates and opportunities.
+
+## 🚀 Features
+
+- **Smart Job Matching**: Utilizes Google's Gemini AI to understand job descriptions and candidate profiles contextually
+- **Skill Gap Analysis**: Visualizes the difference between required and existing skills
+- **Interview Question Generator**: Automatically generates relevant interview questions based on missing experience
+- **Vector-Based Search**: Implements Pinecone for efficient and semantic search capabilities
+- **Interactive UI**: Built with Next.js and Tailwind CSS for a smooth user experience
+
+## 🛠️ Technical Stack
+
+- **Frontend**: Next.js 13.5+, React, Tailwind CSS
+- **AI/ML**: 
+  - Google Gemini AI for natural language understanding
+  - HuggingFace transformers for text processing
+  - Pinecone for vector embeddings and semantic search
+- **UI Components**: Custom-built components with modern design principles
+
+## 💡 Core Features Explained
+
+### Contextual Understanding
+Unlike traditional job matching systems that rely on keyword matching, Talent Match uses advanced AI to understand the context of job requirements. For example, it can differentiate between "5 years Java experience" and more nuanced requirements like "expert-level Java knowledge with microservices architecture experience."
+
+### Skill Gap Analysis
+The platform provides visual representations of:
+- Required skills vs. candidate's existing skills
+- Experience level matches
+- Suggested areas for improvement
+
+### Smart Interview Preparation
+- Generates customized interview questions based on identified skill gaps
+- Provides feedback on potential areas of focus for candidates
+- Helps employers frame relevant technical discussion points
+
+## 🔮 Future Improvements
+
+- Sentiment analysis for company culture matching
+- Real-time market salary predictions
+- Two-way matching system for companies
+- Integration with popular ATS systems
+- Enhanced analytics and reporting features
+
+## 🎯 Project Goals
+
+1. Make job matching more accurate and meaningful
+2. Reduce time spent on initial candidate screening
+3. Help candidates identify and bridge skill gaps
+4. Provide actionable insights for both employers and job seekers
+
+## 💻 Local Development
+
+```bash
+# Clone the repository
+git clone [repository-url]
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Add your API keys for Gemini AI and Pinecone
+
+# Run the development server
+npm run dev
+```
+
+## 📝 Note
+
+This project was built as a demonstration of modern AI capabilities in the recruitment space. It's an experimental project that showcases the potential of AI in understanding and matching job requirements with candidate profiles.
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to:
+- Submit bug reports
+- Suggest new features
+- Create pull requests
+- Share feedback on matching accuracy
+
+## 📜 License
+
+MIT License - Feel free to use this project for learning and development purposes.
+
 # Talent Match
 
 <!-- <p align="center">
