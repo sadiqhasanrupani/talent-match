@@ -1,171 +1,37 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import {
-  UserIcon,
-  SearchIcon,
-  ArrowLeftIcon,
-  ExternalLinkIcon,
-  CheckCircleIcon,
-  AlertCircleIcon,
-  XCircleIcon,
-  BriefcaseIcon,
-} from "lucide-react";
+import { CandidateMatch } from "@/lib/types";
 import { toast } from "sonner";
-import type { CandidateMatch, JobPosting } from "@/lib/types";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { generateInterviewQuestions, getBadgeVariant, getFeedback, getFeedbackIcon } from "@/lib/utils";
+import { ArrowLeftIcon, BriefcaseIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, FilterIcon, Link, MapPinIcon, MessageSquareIcon, SearchIcon, UserIcon, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-function getFeedback(normalizedScore: number): {
-  text: string;
-  category: "exceptional" | "high" | "medium" | "low";
-  details: string;
-} {
-  if (normalizedScore >= 90) {
-    return {
-      text: "Exceptional match! Candidate is highly aligned with job requirements.",
-      category: "exceptional",
-      details:
-        "This candidate demonstrates an exceptional match to the position requirements. Their skills and experience closely align with what you're looking for, suggesting they could be a top performer. Consider fast-tracking this candidate in your hiring process.",
-    };
-  } else if (normalizedScore >= 70) {
-    return {
-      text: "Strong match! Candidate has relevant skills for this position.",
-      category: "high",
-      details:
-        "This candidate shows strong alignment with the job requirements. Their background suggests they have most of the key skills needed for success in this role. They would likely require minimal training to become productive.",
-    };
-  } else if (normalizedScore >= 40) {
-    return {
-      text: "Potential match. Further screening recommended to assess skill alignment.",
-      category: "medium",
-      details:
-        "While this candidate shows potential, there may be some skills gaps that should be explored further. They have some relevant experience but might need additional training in certain areas. Consider focusing interview questions on these potential gaps.",
-    };
-  } else {
-    return {
-      text: "Limited alignment with job requirements. Consider focusing on other candidates.",
-      category: "low",
-      details:
-        "This candidate's experience appears to have limited alignment with the job requirements. There may be significant skills gaps that would require substantial training. Unless they have unique qualities not captured in their profile, other candidates may be better suited for this role.",
-    };
-  }
-}
-
-// Generate tailored interview questions based on match score
-function generateInterviewQuestions(
-  normalizedScore: number,
-  skills: string,
-): string[] {
-  const skillsList = skills
-    .split(/,|\.|and/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const randomSkills = skillsList.sort(() => 0.5 - Math.random()).slice(0, 2);
-
-  const questions = [];
-
-  if (normalizedScore >= 90) {
-    // For exceptional matches, focus on advanced capabilities and leadership
-    questions.push(
-      `You seem to have strong experience with ${randomSkills[0] || "relevant technologies"}. Can you describe a complex problem you solved using this skill and how your approach demonstrated expertise beyond the basics?`,
-    );
-    questions.push(
-      `Given your strong background, how would you approach mentoring junior team members in ${randomSkills[1] || "this field"} while maintaining your own productivity?`,
-    );
-    questions.push(
-      `What's your vision for how ${randomSkills[0] || "this technology"} will evolve in the next few years, and how do you stay ahead of these changes?`,
-    );
-  } else if (normalizedScore >= 70) {
-    // For strong matches, focus on specific experiences and problem-solving
-    questions.push(
-      `Can you walk me through a project where you used ${randomSkills[0] || "relevant skills"} to solve a business problem?`,
-    );
-    questions.push(
-      `What approaches do you take when learning new aspects of ${randomSkills[1] || "technologies in this field"} that you haven't worked with before?`,
-    );
-    questions.push(
-      `Describe a situation where you had to collaborate with others to implement a solution using ${randomSkills[0] || "your technical skills"}. What was your specific contribution?`,
-    );
-  } else if (normalizedScore >= 40) {
-    // For potential matches, focus on growth and skill development
-    questions.push(
-      `While your experience with ${randomSkills[0] || "this area"} may not be extensive, what steps have you taken to develop this skill?`,
-    );
-    questions.push(
-      `How would you approach getting up to speed quickly on ${randomSkills[1] || "technologies used in this role"} if you were hired?`,
-    );
-    questions.push(
-      `Can you describe a time when you had to quickly learn a new technology or skill for a project? What was your approach?`,
-    );
-  } else {
-    // For low matches, focus on transferable skills and motivation
-    questions.push(
-      `Though your experience doesn't directly align with ${randomSkills[0] || "our requirements"}, what transferable skills do you believe would help you succeed in this role?`,
-    );
-    questions.push(
-      `What specifically interests you about working with ${randomSkills[1] || "the technologies in this position"} despite your different background?`,
-    );
-    questions.push(
-      `How do you envision overcoming the learning curve to become proficient in the technical areas required for this position?`,
-    );
-  }
-
-  // Return 2-3 questions
-  return questions.slice(0, 3);
-}
-
-// Get badge color based on score category
-function getBadgeVariant(
-  category: "exceptional" | "high" | "medium" | "low",
-): "default" | "secondary" | "destructive" | "outline" {
-  switch (category) {
-    case "exceptional":
-      return "default"; // green
-    case "high":
-      return "default"; // green
-    case "medium":
-      return "secondary"; // orange/yellow
-    case "low":
-      return "destructive"; // red
-    default:
-      return "outline";
-  }
-}
-
-// Get icon based on score category
-function getFeedbackIcon(category: "exceptional" | "high" | "medium" | "low") {
-  switch (category) {
-    case "exceptional":
-      return <CheckCircleIcon className="h-4 w-4 text-emerald-500" />;
-    case "high":
-      return <CheckCircleIcon className="h-4 w-4 text-green-500" />;
-    case "medium":
-      return <AlertCircleIcon className="h-4 w-4 text-amber-500" />;
-    case "low":
-      return <XCircleIcon className="h-4 w-4 text-red-500" />;
-  }
-}
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 
 export default function SearchCandidatesPage() {
   const [jobTitle, setJobTitle] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [jobType, setJobType] = useState("Full-time");
+  const [salary, setSalary] = useState("₹90,000.00");
+  const [location, setLocation] = useState("In person");
   const [isLoading, setIsLoading] = useState(false);
   const [candidates, setCandidates] = useState<CandidateMatch[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
-  const [jobDetails, setJobDetails] = useState<JobPosting | null>(null);
+  const [jobDetails, setJobDetails] = useState<any | null>(null);
+  const [selectedCandidate, setSelectedCandidate] =
+    useState<CandidateMatch | null>(null);
+
+  const router = useRouter();
 
   async function searchCandidates() {
     if (!jobTitle.trim()) {
@@ -184,36 +50,38 @@ export default function SearchCandidatesPage() {
     try {
       const response = await fetch("/api/search-candidates", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: jobTitle,
           description: jobDescription,
+          type: jobType,
+          salary,
+          location,
         }),
       });
+
       const data = await response.json();
-
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(data.error || "Failed to fetch matching candidates");
-      }
 
-      // Set job details from API response
       if (data.job) {
         setJobDetails({
-          id: data.job.job_id || "unknown", // Handle potential missing job_id
+          id: data.job.job_id || "unknown",
           title: data.job.title,
           description: data.job.description,
+          type: data.job.type,
+          salary: data.job.salary,
+          location: data.job.location,
         });
       }
-      // The candidates already have scores and AI feedback from the API
+
       const candidatesWithScores = (data.matches || []).sort(
         (a: CandidateMatch, b: CandidateMatch) =>
           (b.score ?? 0) - (a.score ?? 0),
       );
 
       setCandidates(candidatesWithScores);
-      if (data.matches && data.matches.length === 0) {
+      if (data.matches?.length === 0) {
         toast.info("No matching candidates found for this job");
       }
     } catch (error) {
@@ -225,380 +93,473 @@ export default function SearchCandidatesPage() {
     }
   }
 
-  // Filter candidates based on active tab
   const filteredCandidates = candidates.filter((candidate) => {
-    if (activeTab === "all") return true;
-    if (activeTab === "high") return (candidate.score ?? 0) >= 70;
-    if (activeTab === "medium")
-      return (candidate.score ?? 0) >= 40 && (candidate.score ?? 0) < 70;
-    if (activeTab === "low") return (candidate.score ?? 0) < 40;
-    return true;
+    const score = candidate.score ?? 0;
+    switch (activeTab) {
+      case "high":
+        return score >= 70;
+      case "medium":
+        return score >= 40 && score < 70;
+      case "low":
+        return score < 40;
+      default:
+        return true;
+    }
   });
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex items-center mb-6">
-        <Link href="/" className="mr-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full hover:bg-slate-100"
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-          </Button>
-        </Link>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-          Search Candidates
-        </h1>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <div className="container mx-auto px-4 py-8 max-w-[1400px]">
+        {/* Back Button */}
+        <Button size={"icon"} className="rounded-full" onClick={() => router.back()}>
+          <ArrowLeftIcon className="h-5 w-5" />
+        </Button>
 
-      <Card className="mb-8 border-none shadow-md">
-        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-t-lg">
-          <CardTitle className="flex items-center gap-2">
-            <BriefcaseIcon className="h-5 w-5 text-primary" />
-            Find candidates matching job requirements
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="jobTitle"
-                className="block text-sm font-medium mb-1"
-              >
-                Job Title
-              </label>
-              <Input
-                id="jobTitle"
-                placeholder="E.g. Senior React Developer"
-                value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
-                className="border-slate-300 focus-visible:ring-primary w-full"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="jobDescription"
-                className="block text-sm font-medium mb-1"
-              >
-                Job Requirements
-              </label>
-              <textarea
-                id="jobDescription"
-                placeholder="Describe the skills, experience, and qualifications required for this position..."
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                className="w-full rounded-md border-slate-300 focus-visible:ring-primary min-h-[100px] p-2"
-                rows={4}
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <Button
-                onClick={searchCandidates}
-                disabled={isLoading}
-                className="transition-all duration-300 hover:shadow-md"
-              >
-                <SearchIcon className="h-4 w-4 mr-2" />
-                {isLoading ? "Searching..." : "Search Candidates"}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {hasSearched && candidates.length > 0 && jobDetails && (
-        <>
-          <Card className="mb-6 border-none shadow-sm bg-gradient-to-r from-slate-50 to-slate-100">
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <BriefcaseIcon className="h-5 w-5 text-primary" />
-                {jobDetails.title}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                AI-matched candidates for this position
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Job ID: {jobDetails.id}
-              </p>
-            </CardHeader>
-            <CardContent>
-              <h3 className="text-sm font-medium mb-2">Job Description</h3>
-              <p className="text-sm text-muted-foreground line-clamp-4">
-                {jobDetails.description}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Tabs
-            defaultValue="all"
-            className="mb-6"
-            onValueChange={setActiveTab}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">
-                Results ({candidates.length} candidates)
-              </h2>
-              <TabsList className="bg-slate-100">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="high">Strong Matches</TabsTrigger>
-                <TabsTrigger value="medium">Potential</TabsTrigger>
-                <TabsTrigger value="low">Low Match</TabsTrigger>
-              </TabsList>
-            </div>
-          </Tabs>
-        </>
-      )}
-
-      {isLoading ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card
-              key={i}
-              className="border border-slate-200 overflow-hidden hover:shadow-md transition-shadow duration-300"
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-8">
+          <Link href="/" className="shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full hover:bg-white/80"
             >
-              <CardHeader className="bg-slate-50 pb-3">
-                <Skeleton className="h-6 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-              <CardContent className="pt-4">
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-2/3" />
-                <div className="mt-4">
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-8 w-full rounded-full" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : hasSearched && candidates.length === 0 ? (
-        <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-200">
-          <div className="bg-slate-100 h-24 w-24 rounded-full flex items-center justify-center mx-auto mb-6">
-            <UserIcon className="h-12 w-12 text-slate-400" />
-          </div>
-          <h3 className="text-xl font-medium mb-2">
-            No matching candidates found
-          </h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Try different job requirements or add more candidates to the
-            platform.
-          </p>
-          <Link href="/candidates/new">
-            <Button className="shadow-md hover:shadow-lg transition-shadow">
-              Add a Candidate
+              <ArrowLeftIcon className="h-4 w-4" />
+              <span className="sr-only">Go back</span>
             </Button>
           </Link>
-        </div>
-      ) : filteredCandidates.length > 0 ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCandidates.map((candidate, index) => {
-            // Use AI-generated feedback from the API instead of local generation
-            const feedback = candidate.ai_feedback || {
-              text: "Candidate evaluation completed by AI.",
-              category:
-                candidate.score >= 70
-                  ? "high"
-                  : candidate.score >= 40
-                    ? "medium"
-                    : "low",
-              details: "Review candidate profile for more details.",
-            };
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+              Search Candidates
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Find the perfect match for your job opening
+            </p>
+          </div>
+        </header>
 
-            return (
-              <Card
-                key={index}
-                className="border border-slate-200 overflow-hidden hover:shadow-md transition-all duration-300 group"
-              >
-                <CardHeader
-                  className={`pb-3 ${
-                    feedback.category === "exceptional"
-                      ? "bg-emerald-50"
-                      : feedback.category === "high"
-                        ? "bg-green-50"
-                        : feedback.category === "medium"
-                          ? "bg-amber-50"
-                          : "bg-red-50"
-                  }`}
+        {/* Search Form */}
+        <Card className="mb-8 border-none shadow-xl bg-white rounded-2xl overflow-hidden">
+          <CardHeader className="border-b pb-6 bg-gradient-to-r from-slate-50 to-white">
+            <CardTitle className="flex items-center gap-2 text-xl text-slate-800">
+              <BriefcaseIcon className="h-5 w-5 text-primary" />
+              Job Requirements
+            </CardTitle>
+            <CardDescription>
+              Enter the job details to find candidates that best match your
+              requirements
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="jobTitle"
+                  className="block text-sm font-medium mb-2 text-slate-700"
                 >
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{candidate.name}</CardTitle>
-                    <Badge
-                      variant={getBadgeVariant(feedback.category)}
-                      className="ml-2"
-                    >
-                      {candidate.score}%
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {candidate.email}
-                  </p>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-1 flex items-center gap-1">
-                      <span className="inline-block h-2 w-2 rounded-full bg-primary"></span>
-                      Skills & Experience
-                    </h4>
-                    <p className="text-sm text-muted-foreground line-clamp-3 pl-3 border-l-2 border-slate-200">
-                      {candidate.skills_experience}
+                  Job Title
+                </label>
+                <Input
+                  id="jobTitle"
+                  placeholder="E.g. Senior React Developer"
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  className="border-slate-200 focus-visible:ring-primary"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="jobType"
+                  className="block text-sm font-medium mb-2 text-slate-700"
+                >
+                  Job Type
+                </label>
+                <Select value={jobType} onValueChange={setJobType}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select job type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Full-time">Full-time</SelectItem>
+                    <SelectItem value="Part-time">Part-time</SelectItem>
+                    <SelectItem value="Contract">Contract</SelectItem>
+                    <SelectItem value="Freelance">Freelance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label
+                  htmlFor="salary"
+                  className="block text-sm font-medium mb-2 text-slate-700"
+                >
+                  Monthly Salary
+                </label>
+                <div className="relative">
+                  <Input
+                    id="salary"
+                    type="text"
+                    placeholder="E.g. ₹90,000.00"
+                    value={salary}
+                    onChange={(e) => setSalary(e.target.value)}
+                    className="border-slate-200 focus-visible:ring-primary pl-8"
+                  />
+                  <DollarSignIcon className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                </div>
+              </div>
+              <div>
+                <label
+                  htmlFor="location"
+                  className="block text-sm font-medium mb-2 text-slate-700"
+                >
+                  Work Location
+                </label>
+                <Select value={location} onValueChange={setLocation}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select work location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="In person">In person</SelectItem>
+                    <SelectItem value="Remote">Remote</SelectItem>
+                    <SelectItem value="Hybrid">Hybrid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <label
+                  htmlFor="jobDescription"
+                  className="block text-sm font-medium mb-2 text-slate-700"
+                >
+                  Job Requirements
+                </label>
+                <textarea
+                  id="jobDescription"
+                  placeholder="Describe the skills, experience, and qualifications required for this position..."
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  className="w-full rounded-md border-slate-200 focus-visible:ring-primary min-h-[120px] p-3"
+                  rows={4}
+                />
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="pt-2 pb-6 flex justify-end bg-slate-50">
+            <Button
+              onClick={searchCandidates}
+              disabled={isLoading}
+              className="transition-all duration-300 hover:shadow-md px-8"
+              size="lg"
+            >
+              <SearchIcon className="h-4 w-4 mr-2" />
+              {isLoading ? "Searching..." : "Search Candidates"}
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Results Section */}
+        {hasSearched && candidates.length > 0 && jobDetails && (
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
+            {/* Main Content */}
+            <div className="space-y-6">
+              {/* Job Details & Filters */}
+              <div className="grid md:grid-cols-[1fr_auto] gap-6">
+                <Card className="border-none shadow-lg bg-white rounded-xl overflow-hidden">
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-slate-50 to-white">
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <BriefcaseIcon className="h-5 w-5 text-primary" />
+                      {jobDetails.title}
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-4 mt-2">
+                      <span className="flex items-center gap-1">
+                        <ClockIcon className="h-4 w-4 text-slate-400" />
+                        {jobDetails.type}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <DollarSignIcon className="h-4 w-4 text-slate-400" />
+                        {jobDetails.salary}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MapPinIcon className="h-4 w-4 text-slate-400" />
+                        {jobDetails.location}
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <p className="text-sm text-slate-600 whitespace-pre-wrap">
+                      <Accordion type="single" collapsible>
+                        <AccordionItem value="item-1">
+                          <AccordionTrigger>Job Description</AccordionTrigger>
+                          <AccordionContent>
+                            {jobDetails.description}
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                     </p>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-1 flex items-center gap-1">
-                      <span className="inline-block h-2 w-2 rounded-full bg-primary"></span>
-                      Match Score
-                    </h4>
-                    <div className="bg-slate-100 h-4 rounded-full w-full overflow-hidden">
-                      <div
-                        className={`h-4 rounded-full ${
-                          (candidate.score ?? 0) >= 90
-                            ? "bg-emerald-500"
-                            : (candidate.score ?? 0) >= 70
-                              ? "bg-green-500"
-                              : (candidate.score ?? 0) >= 40
-                                ? "bg-amber-500"
-                                : "bg-red-500"
-                        } transition-all duration-500 ease-in-out`}
-                        style={{ width: `${candidate.score ?? 0}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center mt-1">
-                      <p className="text-xs font-medium">
-                        {(candidate.score ?? 0) >= 90
-                          ? "Exceptional Match"
-                          : (candidate.score ?? 0) >= 70
-                            ? "Strong Match"
-                            : (candidate.score ?? 0) >= 40
-                              ? "Potential Match"
-                              : "Low Match"}
-                      </p>
-                      <p className="text-xs text-blue-600 items-center gap-1 hidden">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M12 8V4H8"></path>
-                          <rect
-                            width="16"
-                            height="12"
-                            x="4"
-                            y="8"
-                            rx="2"
-                          ></rect>
-                          <path d="M2 14h2"></path>
-                          <path d="M20 14h2"></path>
-                          <path d="M15 13v2"></path>
-                          <path d="M9 13v2"></path>
-                        </svg>
-                        Powered by Gemini AI
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-1 flex items-center gap-1">
-                      <span className="inline-block h-2 w-2 rounded-full bg-primary"></span>
-                      AI Feedback
-                    </h4>
-                    <div
-                      className={`flex items-start gap-2 p-3 rounded-md ${
-                        feedback.category === "exceptional"
-                          ? "bg-emerald-50 border border-emerald-100"
-                          : feedback.category === "high"
-                            ? "bg-green-50 border border-green-100"
-                            : feedback.category === "medium"
-                              ? "bg-amber-50 border border-amber-100"
-                              : "bg-red-50 border border-red-100"
-                      }`}
+                <Card className="border-none shadow-lg bg-white rounded-xl overflow-hidden h-fit">
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-slate-50 to-white">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FilterIcon className="h-4 w-4 text-primary" />
+                      Filter Results
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <Tabs
+                      value={activeTab}
+                      onValueChange={setActiveTab}
+                      className="w-full"
                     >
-                      {getFeedbackIcon(feedback.category)}
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">{feedback.text}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {feedback.details}
+                      <TabsList className="w-full bg-slate-100 p-1">
+                        <TabsTrigger value="all" className="flex-1">
+                          All
+                        </TabsTrigger>
+                        <TabsTrigger value="high" className="flex-1">
+                          Strong
+                        </TabsTrigger>
+                        <TabsTrigger value="medium" className="flex-1">
+                          Potential
+                        </TabsTrigger>
+                        <TabsTrigger value="low" className="flex-1">
+                          Low
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                    <div className="mt-4 text-center">
+                      <p className="text-sm font-medium text-slate-700">
+                        {filteredCandidates.length} candidates
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {activeTab === "all"
+                          ? "Showing all candidates"
+                          : activeTab === "high"
+                            ? "Showing candidates with 70%+ match"
+                            : activeTab === "medium"
+                              ? "Showing candidates with 40-69% match"
+                              : "Showing candidates with <40% match"}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Candidates Grid */}
+              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredCandidates.map((candidate, index) => {
+                  const feedback = getFeedback(candidate.score ?? 0);
+                  return (
+                    <Card
+                      key={index}
+                      className={`group transition-all duration-300 hover:shadow-xl border-none shadow-lg
+                        ${selectedCandidate?.id === candidate.id ? "ring-2 ring-primary" : ""}
+                        cursor-pointer bg-white hover:scale-[1.02] rounded-xl overflow-hidden`}
+                      onClick={() => setSelectedCandidate(candidate)}
+                    >
+                      <CardHeader
+                        className={`pb-3 border-b ${feedback.category === "exceptional"
+                          ? "bg-emerald-50"
+                          : feedback.category === "high"
+                            ? "bg-green-50"
+                            : feedback.category === "medium"
+                              ? "bg-amber-50"
+                              : "bg-red-50"
+                          }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <CardTitle className="text-lg">
+                            {candidate.name}
+                          </CardTitle>
+                          <Badge
+                            variant={getBadgeVariant(feedback.category)}
+                            className="ml-2"
+                          >
+                            {candidate.score}%
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-slate-500">
+                          {candidate.email}
                         </p>
-                      </div>
-                    </div>
-                  </div>
+                      </CardHeader>
 
-                  <div className="mb-4 hidden">
-                    <h4 className="text-sm font-medium mb-1 flex items-center gap-1">
-                      <span className="inline-block h-2 w-2 rounded-full bg-primary"></span>
-                      Suggested Interview Questions
-                    </h4>
-                    <div className="space-y-2 bg-slate-50 p-3 rounded-md border border-slate-100">
-                      {/* Use AI-generated interview questions from the API instead of locally generated ones */}
-                      {(candidate.interview_questions || []).map(
-                        (questionItem, i) => {
-                          // Handle both string questions and object format with question and rationale
-                          const isObjectFormat =
-                            typeof questionItem === "object" &&
-                            questionItem !== null;
-                          const questionText = isObjectFormat
-                            ? questionItem.question
-                            : questionItem;
-                          const rationale = isObjectFormat
-                            ? questionItem.rationale
-                            : null;
+                      <CardContent className="pt-4 space-y-4">
+                        <div>
+                          <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
+                            <span className="h-2 w-2 rounded-full bg-primary"></span>
+                            Skills & Experience
+                          </h4>
+                          <p className="text-sm text-slate-600 line-clamp-3">
+                            {candidate.skills_experience}
+                          </p>
+                        </div>
 
-                          return (
-                            <div key={i} className="flex gap-2">
-                              <span className="bg-primary/10 text-primary h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium">
-                                {i + 1}
-                              </span>
-                              <div>
-                                <p className="text-sm">{questionText}</p>
-                                {rationale && (
-                                  <p className="text-xs text-muted-foreground mt-1 pl-2 border-l border-slate-200">
-                                    <span className="font-medium">
-                                      Why ask:
-                                    </span>{" "}
-                                    {rationale}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        },
+                        <Separator />
+
+                        <div>
+                          <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
+                            <span className="h-2 w-2 rounded-full bg-primary"></span>
+                            Match Analysis
+                          </h4>
+                          <div className="bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 ${(candidate.score ?? 0) >= 90
+                                ? "bg-emerald-500"
+                                : (candidate.score ?? 0) >= 70
+                                  ? "bg-green-500"
+                                  : (candidate.score ?? 0) >= 40
+                                    ? "bg-amber-500"
+                                    : "bg-red-500"
+                                }`}
+                              style={{ width: `${candidate.score ?? 0}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div
+                          className={`p-3 rounded-lg ${feedback.category === "exceptional"
+                            ? "bg-emerald-50"
+                            : feedback.category === "high"
+                              ? "bg-green-50"
+                              : feedback.category === "medium"
+                                ? "bg-amber-50"
+                                : "bg-red-50"
+                            }`}
+                        >
+                          <div className="flex gap-2">
+                            {getFeedbackIcon(feedback.category)}
+                            <p className="text-sm">{feedback.text}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+
+                      {candidate.linkedin_url && (
+                        <CardFooter className="pt-0 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full group-hover:bg-slate-50"
+                            asChild
+                          >
+                            <a
+                              href={candidate.linkedin_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2"
+                            >
+                              <ExternalLinkIcon className="h-3 w-3" />
+                              View LinkedIn Profile
+                            </a>
+                          </Button>
+                        </CardFooter>
                       )}
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Interview Questions Panel */}
+            <div className="lg:sticky lg:top-8 space-y-4">
+              <Card className="border-none shadow-lg bg-white rounded-xl overflow-hidden">
+                <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-white">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageSquareIcon className="h-4 w-4 text-primary" />
+                    Interview Questions
+                  </CardTitle>
+                  <CardDescription>
+                    {selectedCandidate
+                      ? `Suggested questions for ${selectedCandidate.name}`
+                      : "Select a candidate to see suggested questions"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {selectedCandidate ? (
+                    <ScrollArea className="h-[calc(100vh-300px)] pr-4">
+                      <div className="space-y-4">
+                        {generateInterviewQuestions(
+                          selectedCandidate.score ?? 0,
+                          selectedCandidate.skills_experience,
+                        ).map((question, index) => (
+                          <div
+                            key={index}
+                            className="p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-colors"
+                          >
+                            <div className="flex gap-3">
+                              <span className="bg-primary/10 text-primary h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-medium">
+                                {index + 1}
+                              </span>
+                              <p className="text-sm text-slate-700">
+                                {question}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="text-center py-12 text-slate-500">
+                      <MessageSquareIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-sm">
+                        Select a candidate to view suggested interview questions
+                      </p>
                     </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card
+                key={i}
+                className="border-none shadow-lg bg-white rounded-xl overflow-hidden"
+              >
+                <CardHeader className="pb-3 border-b">
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                  <div>
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                  <Separator />
+                  <div>
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-8 w-full rounded-full" />
                   </div>
                 </CardContent>
-                {candidate.linkedin_url && (
-                  <CardFooter className="pt-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full group-hover:bg-slate-50 transition-colors"
-                      asChild
-                    >
-                      <a
-                        href={candidate.linkedin_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <ExternalLinkIcon className="h-3 w-3 mr-2" />
-                        View LinkedIn Profile
-                      </a>
-                    </Button>
-                  </CardFooter>
-                )}
               </Card>
-            );
-          })}
-        </div>
-      ) : null}
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {hasSearched && candidates.length === 0 && !isLoading && (
+          <Card className="border-none shadow-lg bg-white rounded-xl text-center py-16">
+            <CardContent>
+              <div className="bg-slate-100 h-24 w-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                <UserIcon className="h-12 w-12 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-medium mb-2 text-slate-800">
+                No matching candidates found
+              </h3>
+              <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                Try adjusting your search criteria or add more candidates to the
+                platform.
+              </p>
+              <Button
+                asChild
+                className="shadow-md hover:shadow-lg transition-shadow"
+              >
+                <Link href="/candidates/new">Add a Candidate</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

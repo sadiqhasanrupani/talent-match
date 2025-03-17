@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BriefcaseIcon, UserIcon, SearchIcon } from "lucide-react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Header } from "@/components/header";
 
 export default function Home() {
